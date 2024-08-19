@@ -332,7 +332,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build
+        sudo apt-get install -y ninja-build build-essential file make zstd
         sudo apt-get remove -y cmake
         sudo dkp-pacman -S switch-tinyxml2 --noconfirm
         wget https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-linux-x86_64.sh -O /tmp/cmake.sh
@@ -355,6 +355,17 @@ jobs:
         make
         make install
         cd ../..
+        
+        useradd builduser -m
+        passwd -d builduser
+        cd /home/builduser
+        printf 'builduser ALL=(ALL) ALL\n' | tee -a /etc/sudoers
+        wget https://github.com/devkitPro/pacman-packages/raw/master/switch/TinyXML2/PKGBUILD
+        sed -i 's/pro\/switch.cmake/pro\/cmake\/Switch.cmake/g' PKGBUILD
+        sed -i 's/6.0.0/10.0.0/g' PKGBUILD
+        sed -i 's/9444ba6322267110b4aca61cbe37d5dcab040344b5c97d0b36c119aa61319b0f/3BDF15128BA16686E69BCE256CC468E76C7B94FF2C7F391CC5EC09E40BFF3839/g' PKGBUILD
+        sudo -E -u builduser bash -c 'sudo chmod 777 . -R && dkp-makepkg -s -i -L --noconfirm'
+        rsync -a ./pkg/switch-tinyxml2/opt/devkitpro/ /opt/devkitpro/
 
     - name: Fix dubious ownership error
       if: ${{ vars.LINUX_RUNNER }}
